@@ -1,0 +1,46 @@
+---
+title: "Final Project"
+author: "Maureen Muthengi"
+date: "2024-07-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Instacart Market Basket Analysis
+
+Which products will an Instacart consumer purchase again?
+
+The Instacart Market Basket Analysis is a project that aims to predict which products a consumer is likely to purchase again during their next order. By analyzing historical purchase data from millions of orders, the goal is to uncover patterns and insights about consumer behavior. This analysis helps in understanding customer preferences, improving product recommendations, and optimizing inventory management. Key aspects include examining product reorder rates, identifying frequent product combinations, and leveraging machine learning models to make accurate predictions about future purchases.
+
+For this analysis, I will use a logistic regression model to predict the likelihood of a product being reordered. Logistic regression is suitable for this task as it can handle binary outcomes (reordered or not reordered) and provides probabilities that help in making informed predictions. By predicting which products an Instacart consumer will purchase again, businesses can tailor marketing strategies, enhance customer satisfaction, and drive sales growth through personalized shopping experiences.
+
+## Load the necessary Packages
+```{r}
+
+library(tidyverse)
+library(caret)
+library(ROCR)
+```
+
+## Load the Data
+
+For this project we will Load the customer dataset and perform an initial exploration to understand its structure and contents. This step involves reading the CSV file and inspecting the first few rows to get a sense of the data.
+
+```{r, echo=FALSE}
+customer_data <- read.csv("~/Documents/Summer 2024/R_Activities_Summer 2024/Assignment/Website (Portfolio)/instacart-market-basket-analysis/order_products__prior.csv")
+head(customer_data)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+## Data Preprocessing
+Clean the data by handling missing values and encoding categorical variables
+```{r}
+
+```
