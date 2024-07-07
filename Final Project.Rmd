@@ -144,12 +144,101 @@ Based on the above results:
 
 order_id and product_id: These variables have odds ratios close to 1 (1.0000000 and 1.0000007 respectively). An odds ratio of 1 suggests that there is no change in the odds of reordered for a one-unit increase in these variables. This could imply that these variables may not significantly influence the odds of reordered based on the current model.
 
-add_to_cart_order: This variable has an odds ratio of approximately 0.9625898. An odds ratio less than 1 suggests that for every one-unit increase in add_to_cart_order, the odds of reordered decrease by approximately 3.74% ( 
-(1−0.9625898)×100)
+add_to_cart_order: This variable has an odds ratio of approximately 0.9625898. An odds ratio less than 1 suggests that for every one-unit increase in add_to_cart_order, the odds of reordered decrease by approximately 3.74% ((1−0.9625898)×100)
 
 order_id and product_id do not show a significant impact on the odds of reordered based on the current model.
 add_to_cart_order has a slight negative impact, implying that products added later to the cart might be slightly less likely to be reordered.
 
+## Refining the Model
+
+Due to the insignificant results we need to optimize its predictive power and interpretability by identifying and addressing issues such as irrelevant variables or potential interactions.
+
+1. Variable Selection:
+Identify Variables with Minimal Impact:
+Coefficient Significance: Review the coefficients and their significance levels (p-values). Variables with high p-values (typically > 0.05) may indicate they are not statistically significant and can potentially be removed.
+Now considering the relevance of each variable to the outcome (reordered). Variables like order_id and product_id might not directly influence reorder likelihood and could be candidates for removal.
+```{r}
+# Example: Checking significance of coefficients
+summary(model)
+```
+based on these results, the significant Variables are product_id and add_to_cart_order as they appear to be statistically significant predictors of reordered.
+
+Explore Interactions between Variables:
+2. Interaction Terms: predictors (product_id and add_to_cart_order) are significant based on their coefficients and p-values.
+Create interaction terms to capture potential combined effects of these predictors on reordered.
+Interaction Effects: Investigate if the effect of one predictor variable on the outcome varies depending on the value of another predictor. 
+```{r}
+# Adding interaction term between product_id and add_to_cart_order
+model_interaction <- glm(reordered ~ product_id * add_to_cart_order, data = customer_data, family = "binomial")
+```
+
+Interpretation of Interaction Terms:
+Coefficient Interpretation: Examine the coefficients of the interaction terms. A significant interaction indicates that the effect of one predictor on the outcome depends on the level of the other predictor.
+Significance Testing: Check the p-values associated with the interaction terms to determine if they are statistically significant.
+```{r}
+# Checking significance of interaction terms
+summary(model_interaction)
+```
+
+3. Model Validation:
+Validate Model Performance:
+Cross-Validation: Split your dataset into training and testing sets to evaluate how well the model generalizes to new data. This helps avoid overfitting.
+```{r}
+# Cross-validation in R
+set.seed(123)
+train_control <- trainControl(method = "cv", number = 10)
+cv_model <- train(reordered ~ order_id + product_id + add_to_cart_order, data = customer_data, method = "glm", trControl = train_control, family = "binomial")
+summary(cv_model)
+```
+
+ROC Curve and AUC: Plotting the ROC curve and calculating the Area Under the Curve (AUC) helps assess the model's discriminatory ability.
+```{r}
+# ROC curve and AUC calculation
+library(pROC)
+roc_curve <- roc(customer_data$reordered, cv_model$finalModel$fitted.values)
+plot(roc_curve)
+auc(roc_curve)
+```
+
+Plotting Interactions:
+Visualize interactions using plots to understand how the relationship between predictors and reordered changes across different levels of the interacting variables.
+
+```{r}
+#Plotting interactions (if significant)
+plot(df$product_id, df$add_to_cart_order, col = df$reordered)
+
+```
+
+Evaluating Model Improvement
+Model Comparison: Compare the model with interactions (model_interaction) to the baseline model without interactions (model) using metrics like AIC/BIC or cross-validation.
+```{r}
+# Compare AIC/BIC of models
+AIC(model)
+AIC(model_interaction)
+```
+
+Predictive Power: Assess if adding interaction terms improves the model’s predictive power and interpretability based on validation metrics such as ROC curve analysis.
+
+```{r}
+# ROC curve analysis
+library(pROC)
+roc_curve <- roc(customer_data$reordered, predict(model_interaction, type = "response"))
+plot(roc_curve)
+```
+
+
+Conclusion
+Exploring interactions between significant predictors (product_id and add_to_cart_order) allows you to capture nuanced relationships that may improve your logistic regression model's ability to predict reordered. It’s essential to interpret the results carefully and validate the model enhancements to ensure robustness and generalizability.
+
 ## Fitting the Model
 Using the `{tidymodel}` method for fitting model.
+
+
+
+```{r}
+```
+
+
+```{r}
+```
 
