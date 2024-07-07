@@ -38,9 +38,62 @@ head(customer_data)
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
+```{r}
+glimpse(customer_data)
+```
+
 
 ## Data Preprocessing
-Clean the data by handling missing values and encoding categorical variables
+Clean the data by handling missing values and encoding categorical variables. In this case, we may not need extensive preprocessing since the dataset is already structured:
+
+```{r}
+# Check the structure of the data
+str(customer_data)
+```
+Checking for missing values
+```{r}
+# Check for missing values
+colSums(is.na(customer_data))
+```
+
+## Step-by-Step Logistic Regression:
+1. Understanding Logistic Regression:
+Logistic regression is used when the dependent variable (or outcome) is categorical. It predicts the probability of occurrence of an event by fitting data to a logistic curve.
+
+2. Data Preparation:
+
+Dependent Variable (Response): reordered (binary categorical: 0 or 1).
+Independent Variables (Predictors): Typically numeric or categorical predictors like order_id, product_id, add_to_cart_order.
+
+3. Data Exploration:
+Explore your data to understand distributions, relationships, and any initial insights.
+
+4. Model Building:
+Formulate the Model: Specify the logistic regression model equation:
+
+logit(𝑝) =𝛽0+𝛽1𝑥1+𝛽2𝑥2+⋯+𝛽𝑛𝑥𝑛
+ 
+where 
+𝑝p is the probability of the dependent variable, and 𝛽0,𝛽1,…,𝛽𝑛β 0 are coefficients.
+
+
+## Computing Probabilities
+Compute the probabilities of reordered being 1 using the logistic regression model. Here’s how you can do it:
+
+```{r}
+# Fit logistic regression model (assuming df is your preprocessed dataframe)
+model <- glm(reordered ~ ., data = customer_data, family = "binomial")
+```
+
 ```{r}
 
 ```
+
+# Predict probabilities
+probabilities <- predict(model, type = "response")
+
+# Append probabilities to your dataframe for reference
+df$predicted_probability <- probabilities
+
+# View the probabilities
+head(df[, c("reordered", "predicted_probability")])
