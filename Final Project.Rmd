@@ -55,6 +55,7 @@ Clean the data by handling missing values and encoding categorical variables. In
 # Check the structure of the data
 str(customer_data)
 ```
+
 Checking for missing values
 ```{r}
 # Check for missing values
@@ -115,7 +116,7 @@ Extract Coefficients from the Model:
 First, extract the coefficients (beta) from the logistic regression model.
 
 ```{r}
-# Assuming 'model' is your fitted logistic regression model
+# fitted logistic regression model
 coefficients <- coef(model)
 ```
 
@@ -128,7 +129,6 @@ Here exp(coefficients[-1]) calculates the exponential of each coefficient (exclu
 odds_ratios <- exp(coefficients[-1])
 ```
 
-Copy code
 
 ```{r}
 # Create a dataframe to store product_id and corresponding odds ratios
@@ -158,7 +158,7 @@ Identify Variables with Minimal Impact:
 Coefficient Significance: Review the coefficients and their significance levels (p-values). Variables with high p-values (typically > 0.05) may indicate they are not statistically significant and can potentially be removed.
 Now considering the relevance of each variable to the outcome (reordered). Variables like order_id and product_id might not directly influence reorder likelihood and could be candidates for removal.
 ```{r}
-# Example: Checking significance of coefficients
+# Checking significance of coefficients
 summary(model)
 ```
 based on these results, the significant Variables are product_id and add_to_cart_order as they appear to be statistically significant predictors of reordered.
