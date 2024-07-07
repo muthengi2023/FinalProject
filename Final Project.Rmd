@@ -504,46 +504,83 @@ Odds Interpretation
 product_id: Assuming other variables remain constant, a one-unit increase in product_id results in an odds decrease by a factor of approximately exp(-0.003548) = 0.996. This suggests that higher values of product_id are associated with slightly lower odds of reorder.
 add_to_cart_order: Assuming other variables remain constant, a one-unit increase in add_to_cart_order results in an odds increase by a factor of approximately exp(0.096150) = 1.101. This indicates that products added to the cart later are associated with slightly higher odds of reorder.
 
-
+## Test the model
 
 ```{r}
-# The {tidymodels} method for logistic regression requires that the response be a factor variable
-# convert 'reordered' to a factor variable
-customer_data <- customer_data %>%
-  mutate(reordered = as.factor(reordered))
-
-# Define logistic regression specification
-logistic_spec <- logistic_reg() %>%
-  set_engine("glm", family = "binomial")
+# Create a smaller sample of your data
+set.seed(123)  # for reproducibility
+small_customer_data <- small_customer_data[sample(nrow(small_customer_data), 100, replace = FALSE), ]
 
 # Fit the logistic regression model
-model_fit <- logistic_spec %>%
-  fit(reordered ~ product_id + add_to_cart_order, data = customer_data)
+logistic_model <- glm(reordered ~ product_id + add_to_cart_order, 
+                      family = binomial, 
+                      data = small_customer_data)
 
-# View coefficients and summary
-summary(model_fit) %>%
-  tidy() %>%
-  knitr::kable(digits = 3)
+# Predict probabilities for each observation
+predicted_probs <- predict(logistic_model, type = "response")
+
+# Create a data frame with actual reordered status and predicted probabilities
+prediction_results <- data.frame(
+  reordered = small_customer_data$reordered,
+  predicted_probability = predicted_probs
+)
+
+# View the first few rows of the prediction results
+head(prediction_results)
 ```
+Interpretation
 
+For observation 31, the model predicted a probability of 0.410 to not be reordered (reordered = 0), and indeed, it was not reordered (reordered = 0).
+For observation 79, the model predicted a probability of 0.434 to not be reordered, and it was not reordered (reordered = 0).
 
-3. Model Evaluation
-Evaluate the model's performance using metrics such as ROC curve and AUC:
+## Train the model
 
 ```{r}
-# Split data into training and testing sets
-set.seed(123)  # for reproducibility
-sample_size <- 10000  # this can be adjusted as needed
-index <- createDataPartition(customer_data$reordered, p = 0.8, list = FALSE)
-train_data <- customer_data[index, ]
-test_data <- customer_data[-index, ]
+# Set a seed for reproducibility
+set.seed(123)
+
+# Sample a smaller subset of data
+small_customer_data <- customer_data %>% 
+  sample_n(size = 1000, replace = FALSE)  # Adjust size as needed
+
+# Fit logistic regression model
+logistic_model <- glm(reordered ~ product_id + add_to_cart_order,
+                      family = binomial,
+                      data = small_customer_data)
+
+# View summary of the model
+logistic_model
+```
+Model Summary
+The model was fitted using a smaller sample of small_customer_data with 999 degrees of freedom in total (including the intercept) and 997 degrees of freedom for the residuals.
+
+Coefficients
+Intercept (Intercept): 0.6443, this represents the log-odds of the response variable (reordered) when all predictor variables (product_id and add_to_cart_order) are zero.
+
+product_id: -4.134e-07, for each unit increase in product_id, the log-odds of reordered decrease by 4.134e-07 units, holding add_to_cart_order constant.
+add_to_cart_order: -0.0318, for each unit increase in add_to_cart_order, the log-odds of reordered decrease by 0.0318 units, holding product_id constant.
+
+Deviance
+Null Deviance: 1354, this is the deviance of the model when no predictors are included (i.e., only the intercept). It helps assess the goodness of fit of the model.
+
+Residual Deviance: 1341, this is the deviance of the model after including the predictors (product_id and add_to_cart_order). A lower residual deviance indicates a better fit of the model.
+
+AIC (Akaike Information Criterion)AIC: 1347, the AIC is a measure of the model's goodness of fit, penalized for the number of model parameters. Lower AIC values indicate a better-fitting model relative to other models.
+
+Interpretation
+The intercept (0.6443) represents the baseline log-odds of reordered when product_id and add_to_cart_order are zero.
+product_id has a very small coefficient (-4.134e-07), suggesting a minimal effect on the log-odds of reordered per unit increase.
+add_to_cart_order has a coefficient of -0.0318, indicating a negative effect on the log-odds of reordered per unit increase in add_to_cart_order.
+
+## Assessing model fit
+
+Now we want to check the residuals of this model to check the model's fit.
+As we saw for multiple linear regression, there are various kinds of residuals that try to adjust for various features of the data. 
+Two new residuals to explore are *Pearson residuals* and *Deviance residuals*.
+```{r}
+
 ```
 
-```{r}
-# Confirm dimensions of the datasets
-dim(train_data)
-dim(test_data)
-```
 
 ## Train the Logistic Regression Model
 
