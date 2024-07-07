@@ -21,11 +21,11 @@ For this analysis, I will use a logistic regression model to predict the likelih
 
 ## Load the necessary Packages
 ```{r}
-
+library(dplyr)
+library(knitr)
 library(tidyverse)
 library(caret)
 library(ROCR)
-library(dplyr)
 library(tidymodels)
 library(openintro)
 library(ggplot2)
@@ -46,6 +46,42 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 ```{r}
 glimpse(customer_data)
 ```
+
+
+```{r}
+# Summary statistics for numeric variables
+summary(customer_data)
+```
+Interpretation
+
+reordered is a binary variable (0 or 1) indicating whether a product was reordered. The mean indicates that about 58.97% of products were reordered on average.
+
+## Data Preprocessing
+Clean the data by handling missing values and encoding categorical variables. In this case, we may not need extensive preprocessing since the dataset is already structured:
+
+```{r}
+# Check the structure of the data
+str(customer_data)
+```
+
+```{r}
+# Check column names
+colnames(customer_data)
+
+# Output the structure of your data
+str(customer_data)
+
+# Print the first few rows of your data to visually inspect
+head(customer_data)
+```
+
+Checking for missing values
+```{r}
+# Check for missing values
+colSums(is.na(customer_data))
+```
+
+
 ## Data Visualization
 
 1. Distribution of add_to_cart_order
@@ -133,6 +169,8 @@ ggplot(data = merged_data, aes(x = reorder_rate, y = reordered)) +
 
 3. Scatter Plot of add_to_cart_order vs. reorder status
 Visualized the relationship between add_to_cart_order and reordered status using a scatter plot to see if there's a trend or clustering based on the order in which products are added to the cart.
+
+
 ```{r}
 # Scatter plot of add_to_cart_order vs. reordered
 
@@ -142,7 +180,7 @@ sample_size <- 1000  # Adjust as needed
 # Sample subset of data
 sampled_data <- customer_data %>%
   sample_n(size = sample_size, replace = FALSE)  # Sample without replacement
-ggplot(data = customer_data, aes(x = add_to_cart_order, y = reordered)) +
+ggplot(data = sampled_data, aes(x = add_to_cart_order, y = reordered)) +
   geom_point(alpha = 0.6, color = "blue") +
   labs(x = "Add to Cart Order", y = "Reordered",
        title = "Scatter Plot of Add to Cart Order vs. Reordered Status")
@@ -151,57 +189,81 @@ ggplot(data = customer_data, aes(x = add_to_cart_order, y = reordered)) +
 
 4. Heatmap of reorder frequency by order_id and product_id
 Since the dataset is large and I want to visualize the density or frequency of reorders across combinations of order_id and product_id, a heatmap can be informative.
+
 ```{r}
-# Calculate reorder frequency by order_id and product_id
-reorder_freq <- customer_data %>%
+
+# Summarize data to get order counts per product_id
+heatmap_data <- customer_data %>%
   group_by(order_id, product_id) %>%
-  summarise(reorder_count = sum(reordered)) %>%
-  spread(key = product_id, value = reorder_count, fill = 0)
+  summarise(count = n()) %>%
+  ungroup()
 
-# Create heatmap
-ggplot(data = reorder_freq, aes(x = order_id, y = factor(product_id), fill = reorder_count)) +
-  geom_tile() +
-  scale_fill_gradient(low = "lightblue", high = "darkblue") +
-  labs(x = "Order ID", y = "Product ID",
-       title = "Heatmap of Reorder Frequency by Order ID and Product ID")
+# Convert product_id to factor for correct ordering in heatmap
+heatmap_data$product_id <- factor(heatmap_data$product_id)
 
+# View a summary of the prepared data
+summary(heatmap_data)
+```
+```{r}
+# Step 1: Calculate reorder rates
+reorder_rates <- customer_data %>%
+  group_by(order_id, product_id) %>%
+  summarise(reorder_rate = mean(reordered), .groups = "drop")
+
+# Step 2: Prepare data for heatmap (create a matrix structure)
+heatmap_data <- reorder_rates %>%
+  pivot_wider(names_from = product_id, values_from = reorder_rate, values_fill = 0)
+
+# Step 3: Create the heatmap
+heatmap_plot <- ggplot(heatmap_data, aes(x = product_id, y = order_id, fill = reorder_rate)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(x = "Product ID", y = "Order ID", title = "Reorder Rates Heatmap") +
+  theme_minimal()
+
+# Print the heatmap
+print(heatmap_plot)
 ```
 
 
-## Data Preprocessing
-Clean the data by handling missing values and encoding categorical variables. In this case, we may not need extensive preprocessing since the dataset is already structured:
+A numerical summary table  
+
 
 ```{r}
-# Check the structure of the data
-str(customer_data)
+customer_data_summary <- customer_data %>%
+  mutate(reordered_label = case_when(
+    reordered == 0 ~ "No",
+    reordered == 1 ~ "Yes"
+  )) %>%
+  count(reordered_label) %>%
+  mutate(percent = round(n / sum(n) * 100, 2))
+
+# Display the summary table using knitr::kable
+customer_data_summary %>%
+  knitr::kable()
 ```
 
-Checking for missing values
+## Interpretation
+These results summarize the reordered column in the dataset, categorizing it into two labels: "No" and "Yes". Here's how to interpret them:
+
+No: There are 13,307,953 instances where prodcuts have not been reordered is labeled as "No". This represents 41.03% of the total observations in the dataset. While Yes: There are 19,126,536 instances where products were reordered is labeled as "Yes". This represents 58.97% of the total observations in the dataset.
+
+This summary gives you a clear breakdown of how often products have been reordered (reordered == 1 or "Yes") versus not reordered (reordered == 0 or "No"). It's useful for understanding the distribution and prevalence of reorders within your customer data.
+
+## Probability and Odds
+
+What is the probability that a randomly selected product will be repurchased?
+
+To find the probability that a randomly selected product will be repurchased, we need to calculate the overall reorder rate across all products in the dataset.
+
 ```{r}
-# Check for missing values
-colSums(is.na(customer_data))
+# Calculate overall reorder rate
+overall_reorder_rate <- mean(customer_data$reordered == 1)
+
+# Display the result
+overall_reorder_rate
 ```
-
-## Step-by-Step Logistic Regression:
-1. Understanding Logistic Regression:
-Logistic regression is used when the dependent variable (or outcome) is categorical. It predicts the probability of occurrence of an event by fitting data to a logistic curve.
-
-2. Data Preparation:
-
-Dependent Variable (Response): reordered (binary categorical: 0 or 1).
-Independent Variables (Predictors): Typically numeric or categorical predictors like order_id, product_id, add_to_cart_order.
-
-3. Data Exploration:
-Explore your data to understand distributions, relationships, and any initial insights.
-
-4. Model Building:
-Formulate the Model, specify the logistic regression model equation:
-
-logit(𝑝) =𝛽0+𝛽1𝑥1+𝛽2𝑥2+⋯+𝛽𝑛𝑥𝑛
- 
-where 
-𝑝p is the probability of the dependent variable, and 𝛽0,𝛽1,…,𝛽𝑛β 0 are coefficients.
-
+Interpretation: This means approximately 58.97% of the products in the dataset are repurchased. In practical terms, this percentage indicates how likely it is for a randomly selected product from the dataset will be repurchased. This insight is valuable for understanding customer behavior related to product repurchases, which can inform various business strategies such as inventory management, marketing efforts, and customer retention initiatives.
 
 ## Computing Probabilities
 Compute the probabilities of reordered being 1 using the logistic regression model.
@@ -211,6 +273,7 @@ Compute the probabilities of reordered being 1 using the logistic regression mod
 model <- glm(reordered ~ ., data = customer_data, family = "binomial")
 model
 ```
+Interpretation: The logistic regression model suggests that while order_id has a negligible effect on the likelihood of reordered, both product_id and add_to_cart_order have small but significant effects. Specifically, as product_id increases, the odds of a product being reordered increase slightly, and as add_to_cart_order increases, the odds decrease slightly. These coefficients and their significance provide insights into how each predictor contributes to predicting whether a product will be reordered based on the customer dataset.
 
 ```{r}
 # Predict probabilities
@@ -227,24 +290,15 @@ customer_data$predicted_probability <- probabilities
 # View the probabilities
 head(customer_data[, c("reordered", "predicted_probability")])
 ```
+Interpretation 
+reordered: This column indicates whether the product was reordered (1) or not reordered (0).
+predicted_probability: This column shows the predicted probability that each product is reordered, based on the model's predictions.
+For example, The model predicts with a probability of 0.6576285 that the product will be reordered, and indeed, it was reordered.
+
 ## Calculating Conditional Odds
 Calculating the conditional odds of products being reordered based on the logistic regression model can provide valuable insights into how each product contributes to the likelihood of being reordered. 
 
 After fitting the logistic regression model, you can use the model coefficients to calculate the conditional odds for each product. Conditional odds represent the change in odds of an event (in this case, product being reordered) associated with a one-unit change in the predictor variable (product_id).
-
-Step-by-Step Calculation:
-Extract Coefficients from the Model:
-First, extract the coefficients (beta) from the logistic regression model.
-
-```{r}
-# fitted logistic regression model
-coefficients <- coef(model)
-coefficients
-```
-
-
-write the regression model equation here
-
 
 Calculate Odds Ratios (Conditional Odds):
 Use the coefficients to calculate the odds ratios, which represent the conditional odds for each product (product_id).
@@ -274,6 +328,41 @@ add_to_cart_order: This variable has an odds ratio of approximately 0.9625898. A
 order_id and product_id do not show a significant impact on the odds of reordered based on the current model.
 add_to_cart_order has a slight negative impact, implying that products added later to the cart might be slightly less likely to be reordered.
 
+## Logistic regression
+
+Logistic regression is one form of a *generalized linear model*.
+For this type of model, the outcome/response variable takes one one of two levels (sometimes called a binary variable or a two-level categorical variable).
+
+In this project, the dependent Variable (Response) is reordered (binary categorical: 0 or 1).
+Independent Variables (Predictors): Typically numeric or categorical predictors like order_id, product_id, add_to_cart_order.
+
+Step-by-Step Calculation:
+Extract Coefficients from the Model:
+First, extract the coefficients (beta) from the logistic regression model.
+
+```{r}
+# fitted logistic regression model
+coefficients <- coef(model)
+coefficients
+```
+
+The equation of the logistic regression model, based on the coefficients provided, can be written as:
+
+ y^=0.669249+(−6.167154×10 −10×order_id)+(6.528570×10 −7×product_id)+(−0.03812792×add_to_cart_order)
+
+From the output:
+
+β 0 (Intercept) = 6.692490e-01
+β 1 (order_id) = -6.167154e-10
+β 2 (product_id) = 6.528570e-07
+β 3 (add_to_cart_order ) = -3.812792e-02 
+
+Here:
+
+y^represents the predicted probability of a product being reordered.
+order_id, product_id, and add_to_cart_order are the variables used in the model.
+The coefficients ((Intercept), order_id, product_id, add_to_cart_order) indicate how each variable contributes to predicting the log-odds of the product being reordered. This equation summarizes how the logistic regression model uses the values of order_id, product_id, and add_to_cart_order to estimate the likelihood of a product being reordered, by calculating the log-odds of the event occurring.
+
 ## Refining the Model
 
 Due to the insignificant results we need to optimize its predictive power and interpretability by identifying and addressing issues such as irrelevant variables or potential interactions.
@@ -288,6 +377,9 @@ summary(model)
 ```
 based on these results, the significant Variables are product_id and add_to_cart_order as they appear to be statistically significant predictors of reordered.
 
+Dependent Variable (Response): reordered
+Independent Variables (Significant Predictors): product_id and add_to_cart_order
+
 Explore Interactions between Variables:
 2. Interaction Terms: predictors (product_id and add_to_cart_order) are significant based on their coefficients and p-values.
 Create interaction terms to capture potential combined effects of these predictors on reordered.
@@ -297,10 +389,22 @@ Interaction Effects: Investigate if the effect of one predictor variable on the 
 model_interaction <- glm(reordered ~ product_id * add_to_cart_order, data = customer_data, family = "binomial")
 model_interaction
 ```
+The equation of the logistic regression model, based on the coefficients provided, can be written as:
+ This logistic regression model has the following equation:
 
-Interpretation of Interaction Terms:
-Coefficient Interpretation: Examine the coefficients of the interaction terms. A significant interaction indicates that the effect of one predictor on the outcome depends on the level of the other predictor.
-Significance Testing: Check the p-values associated with the interaction terms to determine if they are statistically significant.
+y^=0.6875−1.039×10 −7 ×product_id−0.0404×add_to_cart_order+8.871×10−8×product_id×add_to_cart_order
+
+Here's the interpretation of the coefficients:
+
+Intercept (0.6875): This is the log-odds of the response variable (reordered) when both product_id and add_to_cart_order are zero.
+
+product_id (-1.039e-07): This coefficient represents the change in the log-odds of reordered for a one-unit increase in product_id, holding add_to_cart_order constant.
+
+add_to_cart_order (-0.0404): This coefficient represents the change in the log-odds of reordered for a one-unit increase in add_to_cart_order, holding product_id constant.
+
+product_id(8.871e-08): This interaction term indicates how the effect of product_id on the log-odds of reordered depends on the value of add_to_cart_order, and vice versa.
+
+This model suggests that product_id, add_to_cart_order, and their interaction have significant effects on the log-odds of a product being reordered, with adjustments based on their respective coefficients.
 
 Plotting Interactions:
 Visualize interactions using plots to understand how the relationship between predictors and reordered changes across different levels of the interacting variables.
@@ -312,18 +416,10 @@ plot(customer_data$product_id, customer_data$add_to_cart_order, col = customer_d
 ```
 
 
-Conclusion
-Exploring interactions between significant predictors (product_id and add_to_cart_order) allows you to capture nuanced relationships that may improve your logistic regression model's ability to predict reordered. It’s essential to interpret the results carefully and validate the model enhancements to ensure robustness and generalizability.
-
 ## Fitting the Model
 Using the `{tidymodel}` method for fitting model.
 
 To fit a logistic regression model using the {tidymodels} framework in R, we can follow a structured approach that integrates data preprocessing, model fitting, and evaluation. Here’s how you can proceed step-by-step:
-
-Step-by-Step Approach
-1. Data Preprocessing
-Ensure your data is prepared, including handling missing values and encoding categorical variables if necessary. Here’s a brief recap on preprocessing:
-
 
 Converting the variable to a factor
 Factor Variable: Logistic regression models in R require the outcome variable (reordered) to be a factor with appropriate levels (0 and 1) for binary classification.
@@ -336,10 +432,56 @@ customer_data$reordered <- factor(customer_data$reordered, levels = c(0, 1))
 
 2. Model Specification and Fitting
 
-
 Fit the Model Using {tidymodels}:
 
 Now, fit the logistic regression model using the {tidymodels} framework:
+
+
+```{r}
+# Fit logistic regression model
+logistic_model <- glm(reordered ~ product_id + add_to_cart_order,
+                      data = customer_data,
+                      family = binomial)
+
+# View summary of the model
+summary(logistic_model)
+
+# Extract coefficients
+coefficients <- coef(logistic_model)
+
+# Extract coefficient for product_id
+coef_product_id <- coefficients["product_id"]
+
+# Print coefficient for product_id
+coef_product_id
+
+# Extract coefficient for add_to_cart_order
+coef_add_to_cart_order <- coefficients["add_to_cart_order"]
+
+# Print coefficient for add_to_cart_order
+coef_add_to_cart_order
+
+# Convert log odds to odds
+odds_product_id <- exp(coef_product_id)
+odds_add_to_cart_order <- exp(coef_add_to_cart_order)
+
+# Print interpretations
+cat("For each unit increase in product_id,",
+    "we expect the log odds of the product being reordered to change by",
+    round(coef_product_id, 3), "units.\n")
+
+cat("For each unit increase in add_to_cart_order,",
+    "we expect the log odds of the product being reordered to change by",
+    round(coef_add_to_cart_order, 3), "units.\n")
+
+cat("Assuming other variables remain constant,",
+    "a one-unit increase in product_id results in an odds increase by a factor of approximately",
+    round(odds_product_id, 3), ".\n")
+
+cat("Similarly, a one-unit increase in add_to_cart_order results in an odds increase by a factor of approximately",
+    round(odds_add_to_cart_order, 3), ".\n")
+```
+
 
 ```{r}
 # Taking a smaller sample of customer_data
