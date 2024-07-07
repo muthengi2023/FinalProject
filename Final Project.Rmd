@@ -25,6 +25,11 @@ For this analysis, I will use a logistic regression model to predict the likelih
 library(tidyverse)
 library(caret)
 library(ROCR)
+library(dplyr)
+library(tidymodels)
+library(openintro)
+library(ggplot2)
+library(broom)
 ```
 
 ## Load the Data
@@ -86,14 +91,65 @@ model <- glm(reordered ~ ., data = customer_data, family = "binomial")
 ```
 
 ```{r}
+# Predict probabilities
+probabilities <- predict(model, type = "response")
+```
+
+```{r}
+# Append probabilities to your dataframe for reference
+customer_data$predicted_probability <- probabilities
 
 ```
 
-# Predict probabilities
-probabilities <- predict(model, type = "response")
-
-# Append probabilities to your dataframe for reference
-df$predicted_probability <- probabilities
-
+```{r}
 # View the probabilities
-head(df[, c("reordered", "predicted_probability")])
+head(customer_data[, c("reordered", "predicted_probability")])
+```
+## Calculating Conditional Odds
+Calculating the conditional odds of products being reordered based on the logistic regression model can provide valuable insights into how each product contributes to the likelihood of being reordered. 
+
+After fitting the logistic regression model, you can use the model coefficients to calculate the conditional odds for each product. Conditional odds represent the change in odds of an event (in this case, product being reordered) associated with a one-unit change in the predictor variable (product_id).
+
+Step-by-Step Calculation:
+Extract Coefficients from the Model:
+First, extract the coefficients (beta) from the logistic regression model.
+
+```{r}
+# Assuming 'model' is your fitted logistic regression model
+coefficients <- coef(model)
+```
+
+Calculate Odds Ratios (Conditional Odds):
+Use the coefficients to calculate the odds ratios, which represent the conditional odds for each product (product_id).
+
+Here exp(coefficients[-1]) calculates the exponential of each coefficient (excluding the intercept) to obtain the odds ratios.
+```{r}
+# Calculate odds ratios (conditional odds)
+odds_ratios <- exp(coefficients[-1])
+```
+
+Copy code
+
+```{r}
+# Create a dataframe to store product_id and corresponding odds ratios
+product_odds <- data.frame(product_id = names(odds_ratios), odds_ratio = odds_ratios)
+
+# View the conditional odds for each product
+print(product_odds)
+```
+
+## Interpretation
+
+Based on the above results:
+
+order_id and product_id: These variables have odds ratios close to 1 (1.0000000 and 1.0000007 respectively). An odds ratio of 1 suggests that there is no change in the odds of reordered for a one-unit increase in these variables. This could imply that these variables may not significantly influence the odds of reordered based on the current model.
+
+add_to_cart_order: This variable has an odds ratio of approximately 0.9625898. An odds ratio less than 1 suggests that for every one-unit increase in add_to_cart_order, the odds of reordered decrease by approximately 3.74% ( 
+(1−0.9625898)×100)
+
+order_id and product_id do not show a significant impact on the odds of reordered based on the current model.
+add_to_cart_order has a slight negative impact, implying that products added later to the cart might be slightly less likely to be reordered.
+
+## Fitting the Model
+Using the `{tidymodel}` method for fitting model.
+
