@@ -46,6 +46,126 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 ```{r}
 glimpse(customer_data)
 ```
+## Data Visualization
+
+1. Distribution of add_to_cart_order
+Used histogram to visualize how products are distributed across different positions in the cart order. This helps understand if there are patterns in where products tend to be added in the cart.
+```{r}
+library(ggplot2)
+
+# Histogram of add_to_cart_order
+ggplot(data = customer_data, aes(x = add_to_cart_order)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(x = "Add to Cart Order", y = "Frequency",
+       title = "Distribution of Add to Cart Order")
+
+```
+2. Reorder Rate by Product
+Created a bar chart to show the proportion of products that are reordered versus not reordered. This helps understand the overall reorder behavior of products.
+
+```{r}
+# Convert factor to integer
+customer_data$reordered <- as.integer(as.character(customer_data$reordered))
+```
+
+
+```{r}
+# Example of summarizing reorder rate by product_id
+library(dplyr)
+
+reorder_rates <- customer_data %>%
+  group_by(product_id) %>%
+  summarise(reorder_rate = mean(reordered, na.rm = TRUE))
+
+reorder_rates
+```
+2. Reorder Rate by Product
+Created a bar chart to show the proportion of products that are reordered versus not reordered. This helps understand the overall reorder behavior of products.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Assuming you have already calculated reorder_rates
+# Let's create a sample dataframe for illustration
+reorder_rates <- data.frame(
+  product_id = c(1, 2, 3, 4, 5),
+  reorder_rate = c(0.6, 0.7, 0.5, 0.8, 0.4)  # Example reorder rates
+)
+
+# Plotting reorder rates by product_id
+ggplot(reorder_rates, aes(x = factor(product_id), y = reorder_rate)) +
+  geom_bar(stat = "identity", fill = "skyblue", width = 0.7) +
+  labs(
+    title = "Reorder Rate by Product ID",
+    x = "Product ID",
+    y = "Reorder Rate"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+# Sample size
+sample_size <- 1000  # Adjust as needed
+
+# Sample subset of data
+sampled_data <- customer_data %>%
+  sample_n(size = sample_size, replace = FALSE)  # Sample without replacement
+
+# Calculate reorder rate by product_id
+reorder_rates <- sampled_data %>%
+  group_by(product_id) %>%
+  summarise(reorder_rate = mean(reordered, na.rm = TRUE))  # Calculate mean reorder rate
+
+# Merge reorder rates with sampled data to plot
+merged_data <- merge(sampled_data, reorder_rates, by = "product_id")
+
+# Scatter plot of reorder rates
+ggplot(data = merged_data, aes(x = reorder_rate, y = reordered)) +
+  geom_point(alpha = 0.5) +
+  labs(x = "Reorder Rate", y = "Reordered",
+       title = "Reorder Rate vs. Reordered Products (Sampled Data)") +
+  geom_smooth(method = "lm", se = FALSE) +  # Add linear regression line
+  theme_minimal()
+```
+
+
+3. Scatter Plot of add_to_cart_order vs. reorder status
+Visualized the relationship between add_to_cart_order and reordered status using a scatter plot to see if there's a trend or clustering based on the order in which products are added to the cart.
+```{r}
+# Scatter plot of add_to_cart_order vs. reordered
+
+# Sample size
+sample_size <- 1000  # Adjust as needed
+
+# Sample subset of data
+sampled_data <- customer_data %>%
+  sample_n(size = sample_size, replace = FALSE)  # Sample without replacement
+ggplot(data = customer_data, aes(x = add_to_cart_order, y = reordered)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  labs(x = "Add to Cart Order", y = "Reordered",
+       title = "Scatter Plot of Add to Cart Order vs. Reordered Status")
+
+```
+
+4. Heatmap of reorder frequency by order_id and product_id
+Since the dataset is large and I want to visualize the density or frequency of reorders across combinations of order_id and product_id, a heatmap can be informative.
+```{r}
+# Calculate reorder frequency by order_id and product_id
+reorder_freq <- customer_data %>%
+  group_by(order_id, product_id) %>%
+  summarise(reorder_count = sum(reordered)) %>%
+  spread(key = product_id, value = reorder_count, fill = 0)
+
+# Create heatmap
+ggplot(data = reorder_freq, aes(x = order_id, y = factor(product_id), fill = reorder_count)) +
+  geom_tile() +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(x = "Order ID", y = "Product ID",
+       title = "Heatmap of Reorder Frequency by Order ID and Product ID")
+
+```
 
 
 ## Data Preprocessing
@@ -75,7 +195,7 @@ Independent Variables (Predictors): Typically numeric or categorical predictors 
 Explore your data to understand distributions, relationships, and any initial insights.
 
 4. Model Building:
-Formulate the Model: Specify the logistic regression model equation:
+Formulate the Model, specify the logistic regression model equation:
 
 logit(𝑝) =𝛽0+𝛽1𝑥1+𝛽2𝑥2+⋯+𝛽𝑛𝑥𝑛
  
@@ -89,6 +209,7 @@ Compute the probabilities of reordered being 1 using the logistic regression mod
 ```{r}
 # Fit logistic regression model
 model <- glm(reordered ~ ., data = customer_data, family = "binomial")
+model
 ```
 
 ```{r}
