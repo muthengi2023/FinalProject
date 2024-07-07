@@ -233,12 +233,49 @@ Exploring interactions between significant predictors (product_id and add_to_car
 ## Fitting the Model
 Using the `{tidymodel}` method for fitting model.
 
+To fit a logistic regression model using the {tidymodels} framework in R, we can follow a structured approach that integrates data preprocessing, model fitting, and evaluation. Here’s how you can proceed step-by-step:
 
+Step-by-Step Approach
+1. Data Preprocessing
+Ensure your data is prepared, including handling missing values and encoding categorical variables if necessary. Here’s a brief recap on preprocessing:
+
+2. Model Specification and Fitting
 
 ```{r}
+
+
+# Split data into training and testing sets
+set.seed(123)  # for reproducibility
+train_test_split <- initial_split(customer_data, prop = 0.8, strata = reordered)
+train_data <- training(train_test_split)
+test_data <- testing(train_test_split)
+
+# Model specification
+model_spec <- logistic_reg() %>%
+  set_engine("glm", family = "binomial")
+
+# Fit the model using tidymodels workflow
+model_fit <- fit(model_spec, reordered ~ product_id + add_to_cart_order, data = train_data)
+
 ```
 
+3. Model Evaluation
+Evaluate the model's performance using metrics such as ROC curve and AUC:
 
 ```{r}
+# Predict on test data
+predictions <- predict(model_fit, new_data = test_data, type = "prob")
+
+# Calculate ROC curve and AUC
+roc_curve <- roc(test_data$reordered, predictions$`1`)
+plot(roc_curve)
+```
+
+4. Model Interpretation
+Interpret the coefficients and significance of predictors:
+
+```{r}
+# Extract coefficients and their significance
+tidy(model_fit)
 ```
 
