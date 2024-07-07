@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Instacart Market Basket Analysis
 
-Which products will an Instacart consumer purchase again?
+Which products will an Instacart consumer purchase again (reorder)?
 
 The Instacart Market Basket Analysis is a project that aims to predict which products a consumer is likely to purchase again during their next order. By analyzing historical purchase data from millions of orders, the goal is to uncover patterns and insights about consumer behavior. This analysis helps in understanding customer preferences, improving product recommendations, and optimizing inventory management. Key aspects include examining product reorder rates, identifying frequent product combinations, and leveraging machine learning models to make accurate predictions about future purchases.
 
@@ -635,14 +635,26 @@ ggplot(data = mult_log_aug, aes(x = id, y = .resid)) +
 ## Cross-validation
 
 
+## Discussion
+
+product_id 1 had a reorder rate of approximately 61.3%,
+product_id 3 showed a high reorder rate of about 73.3%, and
+product_id 9 had a reorder rate of approximately 52.6%.
+
+These findings underscore that certain products are more frequently repurchased by consumers than others. Moreover, there is a correlation between the position of these products in the shopping cart (add_to_cart_order) and their likelihood of being reordered. Products with higher reorder rates tend to be placed early in the cart (add_to_cart_order 1-3), indicating consumer preference for these items.
+
+Understanding these reordering patterns not only helps in optimizing product placements and marketing strategies but also enhances overall customer satisfaction and retention on platforms like Instacart. By strategically promoting products with higher reorder rates and ensuring their prominent placement in online shopping carts, businesses can potentially increase sales and foster stronger customer loyalty.
+
 
 ## Conclusion
 
 Based on the analysis results where product_id and add_to_cart_order are identified as significant predictors of reordered, we can draw some conclusions about Instacart Market Basket Analysis:
 
-Reordering Patterns: The analysis suggests that certain products (product_id) and their position in the cart (add_to_cart_order) significantly influence whether a consumer will reorder them.
+Reordering Patterns: The analysis reveals that certain products (product_id) and their position in the cart (add_to_cart_order) significantly influence whether a consumer will reorder them. For instance, products with higher reorder rates (reorder_rate closer to 1) tend to show patterns where they are frequently placed early in the cart (add_to_cart_order 1 or 2), suggesting they are prioritized by consumers.
 
-Predictive Insights: Products that are frequently reordered tend to have certain characteristics or behaviors in terms of their position in the cart or their specific product attributes (product_id).
+Predictive Insights: Products that are frequently reordered (reorder_rate high) often exhibit specific characteristics. These might include popular products (product_id) that are regularly placed at the beginning of the shopping cart (add_to_cart_order low values). This behavior indicates that certain products are more likely to be repurchased, possibly due to consumer preferences or daily necessities.
+
+These insights help in understanding consumer behavior and can guide strategies to optimize product placements, marketing efforts, and inventory management on platforms like Instacart, enhancing customer satisfaction and retention.
 
 ## Recommendations
 
