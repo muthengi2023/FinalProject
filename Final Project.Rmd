@@ -438,9 +438,18 @@ Now, fit the logistic regression model using the {tidymodels} framework:
 
 
 ```{r}
+
+# Taking a smaller sample of customer_data
+set.seed(123)
+small_customer_data <- data.frame(
+  product_id = sample(1:100, 100, replace = TRUE),
+  add_to_cart_order = sample(1:10, 100, replace = TRUE),
+  reordered = sample(0:1, 100, replace = TRUE)
+)
+
 # Fit logistic regression model
 logistic_model <- glm(reordered ~ product_id + add_to_cart_order,
-                      data = customer_data,
+                      data = small_customer_data,
                       family = binomial)
 
 # View summary of the model
@@ -480,34 +489,23 @@ cat("Assuming other variables remain constant,",
 
 cat("Similarly, a one-unit increase in add_to_cart_order results in an odds increase by a factor of approximately",
     round(odds_add_to_cart_order, 3), ".\n")
+
 ```
 
+Model Summary
+Null Deviance: The null deviance measures how well the response variable (reordered) is predicted by a model with only the intercept (null model), before adding any predictors. It's 135.37 on 99 degrees of freedom.
+Residual Deviance: The residual deviance measures how well the response variable is predicted by the model with predictors (product_id and add_to_cart_order). It's 133.55 on 97 degrees of freedom, indicating a slight improvement over the null model.
+AIC: The Akaike Information Criterion (AIC) is a measure of the model's goodness of fit, balancing the goodness of fit with the number of parameters. Lower AIC values indicate better fitting models. Here it's 139.55.
+Coefficients
+Intercept: -0.790026. This is the log-odds of the outcome (reordered) when all predictors (product_id and add_to_cart_order) are zero.
+product_id: -0.003548. For each unit increase in product_id, the log odds of the product being reordered decreases by 0.003548 units.
+add_to_cart_order: 0.096150. For each unit increase in add_to_cart_order, the log odds of the product being reordered increases by 0.096150 units.
+Odds Interpretation
+product_id: Assuming other variables remain constant, a one-unit increase in product_id results in an odds decrease by a factor of approximately exp(-0.003548) = 0.996. This suggests that higher values of product_id are associated with slightly lower odds of reorder.
+add_to_cart_order: Assuming other variables remain constant, a one-unit increase in add_to_cart_order results in an odds increase by a factor of approximately exp(0.096150) = 1.101. This indicates that products added to the cart later are associated with slightly higher odds of reorder.
 
-```{r}
-# Taking a smaller sample of customer_data
-set.seed(123)  # For reproducibility
-sample_size <- 10000  # this can be adjusted as needed
 
-customer_data_sample <- customer_data %>%
-  sample_n(sample_size)
 
-# Checking the dimensions of the sampled data
-dim(customer_data_sample)
-
-# Fitting the logistic regression model on the sampled data
-set.seed(123)
-train_control <- trainControl(method = "cv", number = 10)
-cv_model <- train(
-  reordered ~ order_id + product_id + add_to_cart_order,
-  data = customer_data_sample,
-  method = "glm",
-  trControl = train_control,
-  family = "binomial"
-)
-
-# Printing the cross-validation results
-cv_model
-```
 ```{r}
 # The {tidymodels} method for logistic regression requires that the response be a factor variable
 # convert 'reordered' to a factor variable
@@ -531,13 +529,6 @@ summary(model_fit) %>%
 
 3. Model Evaluation
 Evaluate the model's performance using metrics such as ROC curve and AUC:
-
-```{r}
-# Check if test_data exists
-exists("test_data")
-```
- 
-
 
 ```{r}
 # Split data into training and testing sets
